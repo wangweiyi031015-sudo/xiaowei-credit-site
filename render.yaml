@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: xiaowei-credit-site
+    runtime: static
+    buildCommand: echo "Static site ready"
+    staticPublishPath: .
+
