@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2b5cff">
+<meta name="description" content="松江小微企业信用评估、风险预警与金融政策问答平台">
+<title>松江小微企信 · AI信用评估</title>
+<link rel="stylesheet" href="./static/style.css">
+</head>
+<body>
+
+<!-- 顶部标题栏 -->
+<header class="app-header">
+  <div class="app-title">松江小微企信</div>
+  <div class="app-sub">AI 信用评估 · 风控赋能平台</div>
+</header>
+
+<main id="main">
+
+  <!-- ================= 模块1：信用评估 ================= -->
+  <section class="page active" id="page-evaluate">
+    <div class="card">
+      <h3 class="card-title">企业信息录入</h3>
+
+      <div class="form-item">
+        <label>企业名称</label>
+        <input id="f-name" type="text" placeholder="如：上海昭妃货运代理有限公司" value="上海昭妃货运代理有限公司">
+      </div>
+
+      <div class="row2">
+        <div class="form-item">
+          <label>所属行业门类</label>
+          <select id="f-industry">
+            <option>制造业</option>
+            <option>批发和零售业</option>
+            <option>住宿和餐饮业</option>
+            <option>交通运输、仓储和邮政业</option>
+            <option>信息传输、软件和信息技术服务业</option>
+            <option>科学研究和技术服务业</option>
+            <option>建筑业</option>
+            <option>农、林、牧、渔业</option>
+            <option>文化、体育和娱乐业</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label>成立年限（年）</label>
+          <input id="f-years" type="number" min="0" inputmode="decimal" value="3">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="form-item">
+          <label>注册资本（万元）</label>
+          <input id="f-capital" type="number" min="0" inputmode="decimal" value="200">
+        </div>
+        <div class="form-item">
+          <label>近12月营收（万元）</label>
+          <input id="f-revenue" type="number" min="0" inputmode="decimal" value="65">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="form-item">
+          <label>纳税状态</label>
+          <select id="f-tax">
+            <option>正常</option><option>A级纳税人(2025)</option>
+            <option>欠税</option><option>未公示</option><option>非正常</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label>参保人数</label>
+          <input id="f-social" type="number" min="0" inputmode="numeric" value="0">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="form-item">
+          <label>司法涉案数</label>
+          <input id="f-lawsuit" type="number" min="0" inputmode="numeric" value="0">
+        </div>
+        <div class="form-item">
+          <label>行政处罚数</label>
+          <input id="f-penalty" type="number" min="0" inputmode="numeric" value="0">
+        </div>
+      </div>
+
+      <div class="form-item">
+        <label>经营异常记录数（近3年）</label>
+        <input id="f-abnormal" type="number" min="0" inputmode="numeric" value="3">
+      </div>
+
+      <div class="form-item">
+        <label>风险描述</label>
+        <textarea id="f-desc" rows="3" placeholder="如：2024-2026年连续3年未按期公示年报，被列入经营异常名录">2024年、2025年及2026年，连续3年因未按期公示年度报告，被松江区市场监管局列入经营异常名录。</textarea>
+      </div>
+
+      <button class="btn-primary" id="btn-evaluate" type="button">开始信用评估</button>
+    </div>
+
+    <!-- 评估结果 -->
+    <div class="card result-card" id="result-card" style="display:none;">
+      <div class="score-wrap">
+        <div class="score-num" id="r-score">--</div>
+        <div class="score-label">信用评分</div>
+        <div class="level-badge" id="r-level">--</div>
+      </div>
+      <div class="bar"><div class="bar-inner" id="r-bar"></div></div>
+
+      <div class="section-label">评估理由</div>
+      <ul class="reason-list" id="r-reasons"></ul>
+
+      <div class="section-label">授信建议</div>
+      <div class="advice-box" id="r-advice"></div>
+
+      <div class="section-label">规则维度明细</div>
+      <div id="r-detail"></div>
+
+      <div class="engine-tag" id="r-engine"></div>
+    </div>
+  </section>
+
+  <!-- ================= 模块2：风险预警 ================= -->
+  <section class="page" id="page-warning">
+    <div class="card">
+      <h3 class="card-title">风险预警概览</h3>
+      <div class="stat-row" id="stat-row"></div>
+    </div>
+    <div id="warning-list"></div>
+  </section>
+
+  <!-- ================= 模块3：政策问答 ================= -->
+  <section class="page" id="page-qa">
+    <div class="card">
+      <h3 class="card-title">金融政策智能问答</h3>
+      <p class="hint">基于内置公开金融政策知识回答，例如：
+        “小微贷款风险分类标准是什么？”“个人金融信息如何保护？”</p>
+      <div class="chat-box" id="chat-box">
+        <div class="msg ai">你好，我是金融政策智能助手，请问你想了解哪方面政策？</div>
+      </div>
+      <div class="chat-input-row">
+        <input id="qa-input" type="text" placeholder="输入你的问题…">
+        <button id="btn-qa" type="button">发送</button>
+      </div>
+      <div class="quick-tags">
+        <span class="tag" data-q="小微贷款风险分类标准是什么？">贷款风险分类</span>
+        <span class="tag" data-q="个人金融信息如何保护？">个人信息保护</span>
+        <span class="tag" data-q="失信被执行人会有什么后果？">失信被执行人</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ================= 常驻AI助手（悬浮气泡，任何页面可唤起） ================= -->
+<button class="ai-fab" id="ai-fab" type="button" aria-label="打开金融政策助手">
+  <span class="ai-fab-icon">🤖</span>
+  <span class="ai-fab-text">AI助手</span>
+</button>
+
+<div class="ai-panel" id="ai-panel">
+  <div class="ai-panel-head">
+    <div>
+      <div class="ai-panel-title">金融政策 AI 助手</div>
+      <div class="ai-panel-sub">本地政策知识库模式</div>
+    </div>
+    <button class="ai-panel-close" id="ai-close" type="button" aria-label="关闭金融政策助手">✕</button>
+  </div>
+  <div class="chat-box" id="fab-chat-box">
+    <div class="msg ai">你好！我是金融政策AI助手。你可以问我小微贷款风险分类、个人金融信息保护、失信被执行人等问题。</div>
+  </div>
+  <div class="chat-input-row">
+    <input id="fab-input" type="text" placeholder="输入你的问题…">
+    <button id="fab-send" type="button">发送</button>
+  </div>
+</div>
+
+<!-- 底部导航（模拟小程序） -->
+<nav class="tabbar">
+  <div class="tab active" data-target="page-evaluate"><div class="tab-icon">📊</div><div>信用评估</div></div>
+  <div class="tab" data-target="page-warning"><div class="tab-icon">⚠️</div><div>风险预警</div></div>
+  <div class="tab" data-target="page-qa"><div class="tab-icon">📚</div><div>政策问答</div></div>
+</nav>
+
+<script src="./static/app.js"></script>
+</body>
+</html>
+
