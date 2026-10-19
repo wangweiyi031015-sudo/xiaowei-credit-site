@@ -146,7 +146,7 @@ async function loadWarnings() {
   const list = document.getElementById('warning-list');
   list.innerHTML = '<div class="loading">加载中…</div>';
   try {
-    warningPromise ||= fetch('./data/enterprises.json').then(response => {
+    warningPromise ||= fetch('./data/enterprises.json?v=20261019-1', {cache:'no-store'}).then(response => {
       if (!response.ok) throw new Error('数据加载失败');
       return response.json();
     });
