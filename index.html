@@ -7,9 +7,16 @@
 <meta name="theme-color" content="#2b5cff">
 <meta name="description" content="松江小微企业信用评估、风险预警与金融政策问答平台">
 <title>松江小微企信 · AI信用评估</title>
-<link rel="stylesheet" href="./static/style.css?v=20261019-2">
+<link rel="stylesheet" href="./static/style.css?v=20261019-3">
 </head>
-<body>
+<body class="launching">
+
+<div class="launch-screen" id="launch-screen" role="dialog" aria-modal="true" aria-label="松江小微企信启动页">
+  <img src="./assets/launch-screen.png" alt="松江小微企信">
+  <button class="launch-enter" id="launch-enter" type="button">
+    <span class="sr-only">点击进入松江小微企信</span>
+  </button>
+</div>
 
 <!-- 顶部标题栏 -->
 <header class="app-header">
@@ -172,7 +179,7 @@
 
 <!-- ================= 常驻AI助手（悬浮气泡，任何页面可唤起） ================= -->
 <button class="ai-fab" id="ai-fab" type="button" aria-label="打开金融政策助手">
-  <span class="ai-fab-icon">🤖</span>
+  <img class="ai-fab-icon" src="./assets/ai-assistant.png" alt="">
   <span class="ai-fab-text">AI助手</span>
 </button>
 
@@ -200,6 +207,6 @@
   <div class="tab" data-target="page-qa"><div class="tab-icon">📚</div><div>政策问答</div></div>
 </nav>
 
-<script src="./static/app.js?v=20261019-2"></script>
+<script src="./static/app.js?v=20261019-3"></script>
 </body>
 </html>

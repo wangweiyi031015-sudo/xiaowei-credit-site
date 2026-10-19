@@ -1,5 +1,12 @@
 /* 松江小微企信 · 无后端静态版 */
 
+const launchScreen = document.getElementById('launch-screen');
+document.getElementById('launch-enter').addEventListener('click', () => {
+  launchScreen.classList.add('hidden');
+  launchScreen.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('launching');
+});
+
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -235,9 +242,14 @@ const policySynonyms = {
   '异常':['经营异常','经营异常名录','异常名录'],
   '年报':['年度报告','年报','公示']
 };
+const agentAnswers = {
+  '风险分类':'【小微贷款风险分类】\n根据监管要求，商业银行小微企业贷款按风险程度分为五类：\n· 正常：能正常还本付息，无明显风险；\n· 关注：存在潜在不利因素；\n· 次级：还款能力出现明显问题；\n· 可疑：无法足额偿还，预计产生较大损失；\n· 损失：采取措施后仍无法收回。\n\n实务建议：出现风险信号时应及时重新评估分类。',
+  '个人信息':'【个人金融信息保护】\n处理个人信息应遵循合法、正当、必要和诚信原则，并明确告知处理目的、方式和范围。\n· 敏感个人信息通常需要单独同意；\n· 不得过度收集；\n· 个人有权查阅、更正或删除相关信息。\n\n实务建议：信贷业务应坚持最小化采集并做好信息脱敏。',
+  '失信':'【失信被执行人】\n失信被执行人是有履行能力却拒不履行生效法律文书义务、被法院依法纳入失信名单的个人或企业。\n· 可能被限制高消费和融资；\n· 银行授信审查通常会从严评估。\n\n实务建议：应将失信记录作为信用评估的重要负面指标。'
+};
 
 function loadPolicies() {
-  policyPromise ||= fetch('./data/policies.json?v=20261019-2', {cache:'no-store'}).then(response => {
+  policyPromise ||= fetch('./data/policies.json?v=20261019-3', {cache:'no-store'}).then(response => {
     if (!response.ok) throw new Error(`政策知识库加载失败：${response.status}`);
     return response.json();
   });
@@ -286,12 +298,35 @@ function searchPolicies(data, question, topK = 3) {
   }).slice(0, topK);
 }
 
+function buildAgentAnswer(question, hits) {
+  const preset = Object.entries(agentAnswers).find(([key]) =>
+    key === '风险分类' ? question.includes('风险') && question.includes('分类') : question.includes(key));
+  if (preset) return preset[1];
+
+  const queryChars = [...cleanQuestion(question).replaceAll(' ', '')];
+  const queryTerms = [...new Set(queryChars.slice(0, -1).map((char, index) => char + queryChars[index + 1]))];
+  const sentences = hits.flatMap((hit, hitIndex) => hit.text
+    .split(/(?<=[。！？；])/)
+    .map(text => text.replace(/\s+/g, ' ').trim())
+    .filter(text => text.length >= 18)
+    .map(text => ({text, score:queryTerms.filter(term => text.includes(term)).length + hit.score - hitIndex * .05}))
+  ).sort((a, b) => b.score - a.score);
+
+  const selected = [];
+  for (const sentence of sentences) {
+    if (selected.some(item => item.text === sentence.text)) continue;
+    selected.push(sentence);
+    if (selected.length === 3 || selected.reduce((sum, item) => sum + item.text.length, 0) >= 320) break;
+  }
+  const summary = selected.length ? selected.map((item, index) => `${index + 1}. ${item.text}`).join('\n') : hits[0].text.slice(0, 360);
+  return `我已为你检索政策知识库，找到 ${hits.length} 个相关段落。\n\n结论与依据：\n${summary}\n\n如需进一步判断，请补充企业所属行业、规模或具体业务场景。`;
+}
+
 async function policyAnswer(question) {
   const data = await loadPolicies();
   const hits = searchPolicies(data, question);
   if (!hits.length) return {answer:'知识库中暂未找到明确依据。你可以换用更具体的政策关键词重新提问。', hits:[]};
-  const excerpts = hits.slice(0, 2).map((hit, index) => `【原文 ${index + 1}】${hit.text}`);
-  return {answer:`以下为知识库检索到的相关政策原文（公开版不调用大模型）：\n\n${excerpts.join('\n\n')}`, hits};
+  return {answer:buildAgentAnswer(question, hits), hits};
 }
 
 loadPolicies().then(data => {
@@ -363,6 +398,7 @@ document.getElementById('fab-input').addEventListener('keydown', event => {
 });
 
 console.assert(searchPolicies({chunks:[{source:'中小企业划型标准规定', text:'中小企业划型标准依据从业人员、营业收入、资产总额等指标制定。'}]}, '中小企业怎么划型').length === 1, '政策检索自检失败');
+console.assert(buildAgentAnswer('企业怎么划型', [{source:'中小企业划型标准规定', text:'中小企业划型标准依据从业人员、营业收入、资产总额等指标制定。', score:1}]).includes('结论与依据'), '智能回答整理自检失败');
 
 function textNode(tag) {
   return text => {
