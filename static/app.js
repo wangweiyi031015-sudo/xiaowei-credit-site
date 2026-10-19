@@ -219,17 +219,87 @@ function warningCard(item) {
   return card;
 }
 
-const knowledge = [
-  {keys:['风险分类','五级分类','贷款分类'], answer:'小微企业贷款通常按风险程度划分为正常、关注、次级、可疑和损失五类。分类时需综合考虑还款能力、逾期情况、担保状况和经营变化，并持续动态调整。'},
-  {keys:['个人信息','隐私','信息保护'], answer:'处理个人金融信息应遵循合法、正当、必要和诚信原则，明确告知处理目的、方式与范围，采取与风险相匹配的安全措施，并为查询、更正和删除提供渠道。'},
-  {keys:['失信','被执行人','限制高消费'], answer:'被列为失信被执行人后，可能面临信用惩戒、限制高消费、融资受限等后果。金融机构通常会将其作为重要风险信号，并结合案件进展审慎授信。'},
-  {keys:['授信','贷款条件'], answer:'授信判断通常综合经营年限、营收与现金流、纳税和社保、司法诉讼、行政处罚、经营异常及担保情况。系统结果仅用于演示和辅助研判，不能替代金融机构正式尽调。'}
-];
+let policyPromise;
+const stopPhrases = ['介绍一下','有什么','是什么','有哪些','怎么样','怎么','怎样','如何','哪些','哪个','什么','是否','能否','请问','一下','告诉我','可以吗','吗','呢','吧','的','了'];
+const policySynonyms = {
+  '小微':['小微企业','小型微型企业','小型企业','微型企业'],
+  '风险分类':['风险分类','金融资产风险分类','五级分类','正常类','关注类','次级类','可疑类','损失类','不良资产'],
+  '划型':['划型标准','中小企业划型标准','从业人员','营业收入','资产总额'],
+  '融资':['融资','融资难','融资贵','信贷'],
+  '担保':['融资担保','政策性融资担保','风险补偿'],
+  '个人金融信息':['个人信息','敏感个人信息','个人信息处理'],
+  '个人信息':['个人信息','敏感个人信息','个人信息处理'],
+  '征信':['征信机构','信用报告','信用信息'],
+  '补贴':['补贴','补助','专项资金','扶持','奖励','贴息'],
+  '失信':['失信被执行人','失信名单','限制高消费'],
+  '异常':['经营异常','经营异常名录','异常名录'],
+  '年报':['年度报告','年报','公示']
+};
 
-function localAnswer(question) {
-  const hit = knowledge.find(item => item.keys.some(key => question.includes(key)));
-  return hit ? hit.answer : '当前公开版使用本地政策知识库。你可以询问：小微贷款风险分类、个人金融信息保护、失信被执行人或企业授信条件。';
+function loadPolicies() {
+  policyPromise ||= fetch('./data/policies.json?v=20261019-2', {cache:'no-store'}).then(response => {
+    if (!response.ok) throw new Error(`政策知识库加载失败：${response.status}`);
+    return response.json();
+  });
+  return policyPromise;
 }
+
+function cleanQuestion(question) {
+  let result = question.replace(/[^\u4e00-\u9fffA-Za-z0-9]+/g, ' ');
+  [...stopPhrases].sort((a, b) => b.length - a.length).forEach(word => { result = result.replaceAll(word, ' '); });
+  return result.replace(/\s+/g, ' ').trim();
+}
+
+function searchPolicies(data, question, topK = 3) {
+  const cleaned = cleanQuestion(question);
+  if (!cleaned) return [];
+  const joined = cleaned.replaceAll(' ', '');
+  const phrases = new Set();
+  (joined.match(/[\u4e00-\u9fff]{2,}/g) || []).forEach(part => {
+    for (let size = Math.min(6, part.length); size >= 2; size -= 1) {
+      for (let i = 0; i <= part.length - size; i += 1) phrases.add(part.slice(i, i + size));
+    }
+  });
+  const synonyms = Object.entries(policySynonyms)
+    .filter(([key]) => joined.includes(key))
+    .flatMap(([, terms]) => terms);
+  const bigrams = [...new Set((joined.match(/[\u4e00-\u9fff]+/g) || [])
+    .flatMap(part => [...part].slice(0, -1).map((char, i) => char + part[i + 1])))];
+
+  const scored = data.chunks.map(chunk => {
+    let longest = 0;
+    phrases.forEach(phrase => { if (chunk.text.includes(phrase)) longest = Math.max(longest, phrase.length); });
+    const phraseScore = longest >= 6 ? 1 : longest === 5 ? .85 : longest === 4 ? .7 : longest === 3 ? .35 : longest === 2 ? .12 : 0;
+    const synonymScore = synonyms.length ? Math.min(1, synonyms.filter(term => chunk.text.includes(term)).length / 2) : 0;
+    const tokenScore = bigrams.length ? bigrams.filter(token => chunk.text.includes(token)).length / bigrams.length : 0;
+    const titleTerms = [...phrases, ...synonyms].filter(term => term.length >= 2 && chunk.source.includes(term));
+    const titleScore = titleTerms.length ? Math.min(1, Math.max(...titleTerms.map(term => term.length)) / 6) : 0;
+    return {...chunk, score: .45 * Math.max(phraseScore, synonymScore) + .30 * tokenScore + .25 * titleScore};
+  }).filter(hit => hit.score >= .12).sort((a, b) => b.score - a.score);
+
+  const perSource = new Map();
+  return scored.filter(hit => {
+    const count = perSource.get(hit.source) || 0;
+    if (count >= 2) return false;
+    perSource.set(hit.source, count + 1);
+    return true;
+  }).slice(0, topK);
+}
+
+async function policyAnswer(question) {
+  const data = await loadPolicies();
+  const hits = searchPolicies(data, question);
+  if (!hits.length) return {answer:'知识库中暂未找到明确依据。你可以换用更具体的政策关键词重新提问。', hits:[]};
+  const excerpts = hits.slice(0, 2).map((hit, index) => `【原文 ${index + 1}】${hit.text}`);
+  return {answer:`以下为知识库检索到的相关政策原文（公开版不调用大模型）：\n\n${excerpts.join('\n\n')}`, hits};
+}
+
+loadPolicies().then(data => {
+  const stats = data.stats;
+  document.getElementById('kb-text').textContent = `政策知识库已就绪：${stats.documents} 份文件 · ${stats.chunks} 个段落 · 约 ${(stats.characters / 10000).toFixed(1)} 万字`;
+}).catch(() => {
+  document.getElementById('kb-text').textContent = '政策知识库加载失败，请刷新页面重试';
+});
 
 const chatBox = document.getElementById('chat-box');
 function pushMsg(box, text, who) {
@@ -238,12 +308,31 @@ function pushMsg(box, text, who) {
   node.textContent = text;
   box.appendChild(node);
   box.scrollTop = box.scrollHeight;
+  return node;
 }
-function ask(question) {
+
+function pushSources(box, hits) {
+  if (!hits.length) return;
+  const sources = [...new Set(hits.map(hit => `《${hit.source}》`))];
+  const node = document.createElement('div');
+  node.className = 'msg-src';
+  node.textContent = `检索依据：${sources.join('、')}\n命中 ${hits.length} 个段落 · 最高匹配度 ${(hits[0].score * 100).toFixed(1)}%`;
+  box.appendChild(node);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function ask(question) {
   if (!question.trim()) return;
   pushMsg(chatBox, question, 'user');
   document.getElementById('qa-input').value = '';
-  pushMsg(chatBox, localAnswer(question), 'ai');
+  const holder = pushMsg(chatBox, '正在检索政策原文…', 'ai');
+  try {
+    const result = await policyAnswer(question);
+    holder.textContent = result.answer;
+    pushSources(chatBox, result.hits);
+  } catch (error) {
+    holder.textContent = '政策知识库暂时无法加载，请刷新页面后重试。';
+  }
 }
 document.getElementById('btn-qa').addEventListener('click', () => ask(val('qa-input')));
 document.getElementById('qa-input').addEventListener('keydown', event => {
@@ -255,16 +344,25 @@ const fabPanel = document.getElementById('ai-panel');
 const fabBox = document.getElementById('fab-chat-box');
 document.getElementById('ai-fab').addEventListener('click', () => fabPanel.classList.toggle('open'));
 document.getElementById('ai-close').addEventListener('click', () => fabPanel.classList.remove('open'));
-function fabAsk(question) {
+async function fabAsk(question) {
   if (!question.trim()) return;
   pushMsg(fabBox, question, 'user');
   document.getElementById('fab-input').value = '';
-  pushMsg(fabBox, localAnswer(question), 'ai');
+  const holder = pushMsg(fabBox, '正在检索政策原文…', 'ai');
+  try {
+    const result = await policyAnswer(question);
+    holder.textContent = result.answer;
+    pushSources(fabBox, result.hits);
+  } catch (error) {
+    holder.textContent = '政策知识库暂时无法加载，请刷新页面后重试。';
+  }
 }
 document.getElementById('fab-send').addEventListener('click', () => fabAsk(val('fab-input')));
 document.getElementById('fab-input').addEventListener('keydown', event => {
   if (event.key === 'Enter') fabAsk(val('fab-input'));
 });
+
+console.assert(searchPolicies({chunks:[{source:'中小企业划型标准规定', text:'中小企业划型标准依据从业人员、营业收入、资产总额等指标制定。'}]}, '中小企业怎么划型').length === 1, '政策检索自检失败');
 
 function textNode(tag) {
   return text => {
