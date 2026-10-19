@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#2b5cff">
 <meta name="description" content="松江小微企业信用评估、风险预警与金融政策问答平台">
 <title>松江小微企信 · AI信用评估</title>
-<link rel="stylesheet" href="./static/style.css?v=20261019-1">
+<link rel="stylesheet" href="./static/style.css?v=20261019-2">
 </head>
 <body>
 
@@ -144,19 +144,26 @@
   <section class="page" id="page-qa">
     <div class="card">
       <h3 class="card-title">金融政策智能问答</h3>
-      <p class="hint">基于内置公开金融政策知识回答，例如：
-        “小微贷款风险分类标准是什么？”“个人金融信息如何保护？”</p>
+      <div class="kb-bar" id="kb-bar">
+        <span class="kb-dot"></span>
+        <span id="kb-text">政策知识库加载中…</span>
+      </div>
+      <p class="hint">基于政策原文检索（RAG）回答，并标注依据文件。例如：
+        “小微贷款风险分类标准是什么？”“中小企业怎么划型？”</p>
       <div class="chat-box" id="chat-box">
-        <div class="msg ai">你好，我是金融政策智能助手，请问你想了解哪方面政策？</div>
+        <div class="msg ai">你好，我是金融政策智能助手。我的回答来自平台收录的政策文件原文，并会标注依据出处。请问你想了解哪方面政策？</div>
       </div>
       <div class="chat-input-row">
         <input id="qa-input" type="text" placeholder="输入你的问题…">
         <button id="btn-qa" type="button">发送</button>
       </div>
       <div class="quick-tags">
-        <span class="tag" data-q="小微贷款风险分类标准是什么？">贷款风险分类</span>
-        <span class="tag" data-q="个人金融信息如何保护？">个人信息保护</span>
-        <span class="tag" data-q="失信被执行人会有什么后果？">失信被执行人</span>
+        <span class="tag" data-q="小微贷款风险怎么分类？">贷款风险分类</span>
+        <span class="tag" data-q="中小企业划型标准是什么？">企业划型标准</span>
+        <span class="tag" data-q="政策性融资担保怎么申请？">融资担保</span>
+        <span class="tag" data-q="松江区对科技型中小企业有什么资金支持？">松江补贴</span>
+        <span class="tag" data-q="征信机构能采集哪些信息？">征信采集</span>
+        <span class="tag" data-q="个人信息保护法有哪些要求？">个人信息保护</span>
       </div>
     </div>
   </section>
@@ -173,12 +180,12 @@
   <div class="ai-panel-head">
     <div>
       <div class="ai-panel-title">金融政策 AI 助手</div>
-      <div class="ai-panel-sub">本地政策知识库模式</div>
+      <div class="ai-panel-sub">基于 9 份政策原文检索作答</div>
     </div>
     <button class="ai-panel-close" id="ai-close" type="button" aria-label="关闭金融政策助手">✕</button>
   </div>
   <div class="chat-box" id="fab-chat-box">
-    <div class="msg ai">你好！我是金融政策AI助手。你可以问我小微贷款风险分类、个人金融信息保护、失信被执行人等问题。</div>
+    <div class="msg ai">你好！我是金融政策AI助手。你可以问我贷款风险分类、中小企业划型、融资担保、征信或个人信息保护等问题。</div>
   </div>
   <div class="chat-input-row">
     <input id="fab-input" type="text" placeholder="输入你的问题…">
@@ -193,6 +200,6 @@
   <div class="tab" data-target="page-qa"><div class="tab-icon">📚</div><div>政策问答</div></div>
 </nav>
 
-<script src="./static/app.js?v=20261019-1"></script>
+<script src="./static/app.js?v=20261019-2"></script>
 </body>
 </html>
