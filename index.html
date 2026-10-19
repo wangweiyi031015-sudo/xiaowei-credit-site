@@ -126,6 +126,16 @@
     <div class="card">
       <h3 class="card-title">风险预警概览</h3>
       <div class="stat-row" id="stat-row"></div>
+      <div class="warning-tools">
+        <input id="warning-search" type="search" placeholder="搜索企业、行业或风险描述" aria-label="搜索风险预警企业">
+        <div class="risk-filters" role="group" aria-label="按风险等级筛选">
+          <button class="active" type="button" data-risk="">全部</button>
+          <button type="button" data-risk="高">高风险</button>
+          <button type="button" data-risk="中">中风险</button>
+          <button type="button" data-risk="低">低风险</button>
+        </div>
+        <div class="warning-result-count" id="warning-result-count"></div>
+      </div>
     </div>
     <div id="warning-list"></div>
   </section>
@@ -186,4 +196,3 @@
 <script src="./static/app.js"></script>
 </body>
 </html>
-
