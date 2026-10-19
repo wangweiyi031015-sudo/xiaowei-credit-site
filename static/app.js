@@ -140,6 +140,8 @@ function renderResult(r) {
 }
 
 let warningPromise;
+let warningItems = [];
+let warningRisk = '';
 async function loadWarnings() {
   const list = document.getElementById('warning-list');
   list.innerHTML = '<div class="loading">加载中…</div>';
@@ -157,11 +159,43 @@ async function loadWarnings() {
       <div class="stat high"><div class="n">${counts.高}</div><div class="t">高风险</div></div>
       <div class="stat mid"><div class="n">${counts.中}</div><div class="t">中风险</div></div>
       <div class="stat low"><div class="n">${counts.低}</div><div class="t">低风险</div></div>`;
-    list.replaceChildren(...items.map(warningCard));
+    warningItems = items;
+    renderWarnings();
   } catch (error) {
     list.innerHTML = '<div class="loading">预警数据暂时无法加载，请稍后重试。</div>';
   }
 }
+
+function filterWarnings(items, query, risk) {
+  const keyword = query.trim().toLowerCase();
+  return items.filter(item => {
+    if (risk && item['标注信用等级'] !== risk) return false;
+    if (!keyword) return true;
+    return ['企业名称', '所属行业', '行业细分', '风险描述', '纳税状态']
+      .some(field => String(item[field] || '').toLowerCase().includes(keyword));
+  });
+}
+
+function renderWarnings() {
+  const filtered = filterWarnings(warningItems, val('warning-search'), warningRisk);
+  const list = document.getElementById('warning-list');
+  list.replaceChildren(...(filtered.length
+    ? filtered.map(warningCard)
+    : [line('loading', '没有找到符合条件的企业。')]));
+  document.getElementById('warning-result-count').textContent = `显示 ${filtered.length} / ${warningItems.length} 家企业`;
+}
+
+document.getElementById('warning-search').addEventListener('input', renderWarnings);
+document.querySelectorAll('.risk-filters button').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('.risk-filters button').forEach(item => item.classList.remove('active'));
+    button.classList.add('active');
+    warningRisk = button.dataset.risk;
+    renderWarnings();
+  });
+});
+
+console.assert(filterWarnings([{'企业名称':'示例企业','标注信用等级':'高'}], '示例', '高').length === 1, '风险筛选自检失败');
 
 function warningCard(item) {
   const cls = {高:'high', 中:'mid', 低:'low'}[item['标注信用等级']] || 'low';
@@ -247,4 +281,3 @@ function line(className, text) {
 }
 function val(id) { return document.getElementById(id).value.trim(); }
 function num(id) { return Math.max(0, Number(document.getElementById(id).value) || 0); }
-
